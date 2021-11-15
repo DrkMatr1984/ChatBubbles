@@ -53,6 +53,10 @@ ChatBubble_Send_Original_Message: true
 ChatBubble_Strip_Formatting: true
 #Enabling this will strip all formatting from messages to fix newline oddities
 
+ChatBubble_Chat_Priority: NORMAL
+#Change Chat Listener Priority. Changing this may allow to retrieve formatted chat from other Chat Plugins
+#Options are LOWEST, LOW, NORMAL, HIGH, HIGHEST, or MONITOR
+
 ##############################
 #        Sound Config        #
 ##############################

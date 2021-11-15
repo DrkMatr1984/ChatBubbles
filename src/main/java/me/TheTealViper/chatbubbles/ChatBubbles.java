@@ -9,14 +9,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,10 +26,15 @@ import com.gmail.filoghost.holographicdisplays.api.HologramsAPI;
 
 import me.TheTealViper.chatbubbles.utils.EnableShit;
 import me.TheTealViper.chatbubbles.utils.PluginFile;
+import me.TheTealViper.chatbubbles.listeners.ChatListenerHigh;
+import me.TheTealViper.chatbubbles.listeners.ChatListenerHighest;
+import me.TheTealViper.chatbubbles.listeners.ChatListenerLow;
+import me.TheTealViper.chatbubbles.listeners.ChatListenerLowest;
+import me.TheTealViper.chatbubbles.listeners.ChatListenerMonitor;
+import me.TheTealViper.chatbubbles.listeners.ChatListenerNormal;
 import me.TheTealViper.chatbubbles.utils.ChatBubbleTrait;
 import net.md_5.bungee.api.ChatColor;
 
-@SuppressWarnings("deprecation")
 public class ChatBubbles extends JavaPlugin implements Listener{
 	public int life = -1, distance = -1, length = -1;
 	public String prefix = "", suffix = "";
@@ -38,7 +42,9 @@ public class ChatBubbles extends JavaPlugin implements Listener{
 	private boolean useTrait = true;
 	public boolean chatBubbleOverridesNPCChat;
 	public double bubbleOffset = 2.5;
+	public EventPriority chatPriority = EventPriority.NORMAL;
 	private PluginFile togglePF;
+	private ChatBubbles plugin;
 	
 	public Map<UUID, List<Hologram>> existingHolograms = new HashMap<UUID, List<Hologram>>();
 	
@@ -57,12 +63,14 @@ public class ChatBubbles extends JavaPlugin implements Listener{
 		bubbleOffset = getConfig().getDouble("ChatBubble_Height_Offset");
 		useTrait = getConfig().getBoolean("Use_ChatBubble_Trait_Citizens");
 		chatBubbleOverridesNPCChat = getConfig().getBoolean("ChatBubble_Overrides_NPC_Chat");
+		chatPriority = EventPriority.valueOf(getConfig().getString("ChatBubble_Chat_Priority").toUpperCase());
 		togglePF = new PluginFile(this, "toggleData");
 		if(getServer().getPluginManager().getPlugin("Citizens") != null || getServer().getPluginManager().getPlugin("Citizens").isEnabled() == true || useTrait) {
 			Bukkit.getServer().getConsoleSender().sendMessage("Citizens found and trait chatbubble enabled");
 			net.citizensnpcs.api.CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(ChatBubbleTrait.class).withName("chatbubble"));		
 		}
-		
+		this.plugin = this;
+		setChatPriority(chatPriority);		
 	}
 	
 	public void onDisable(){
@@ -103,40 +111,22 @@ public class ChatBubbles extends JavaPlugin implements Listener{
 		return false;
 	}
 	
-//	@EventHandler
-//	public void onChat(com.palmergames.bukkit.TownyChat.events.AsyncChatHookEvent e) {
-//		e.getChannel().
-//	}
-	
-	@EventHandler
-	public void onChat(PlayerChatEvent e){
-		if(e.isCancelled() || e.getPlayer().getGameMode().name().equals(GameMode.SPECTATOR.name()))
-			return;
-		switch (getConfig().getInt("ChatBubble_Configuration_Mode")){
-		case 0:
-			if(!getConfig().getBoolean("ChatBubble_Send_Original_Message"))
-				e.setCancelled(true);
-			handleZero(e.getMessage(), e.getPlayer());
-			break;
-		case 1:
-			//This is handled in the command event
-			break;
-		case 2:
-			if(!getConfig().getBoolean("ChatBubble_Send_Original_Message"))
-				e.setCancelled(true);
-			handleTwo(e.getMessage(), e.getPlayer());
-			break;
-		case 3:
-			if(Bukkit.getServer().getPluginManager().getPlugin("Factions") != null)
-				handleThree.run(this, e.getMessage(), e.getPlayer());
-			else
-				getServer().getConsoleSender().sendMessage("ChatBubbles is set to configuration mode 3 but Factions can't be found!");
-			break;
-		case 4:
-			handleFour(e.getMessage(), e.getPlayer());
-			break;
-		default:
-			break;
+	private void setChatPriority(EventPriority priority) {
+		switch (priority) {
+			case LOWEST:
+				this.getServer().getPluginManager().registerEvents(new ChatListenerLowest(this), this);
+			case LOW:
+				this.getServer().getPluginManager().registerEvents(new ChatListenerLow(this), this);
+			case NORMAL:
+				this.getServer().getPluginManager().registerEvents(new ChatListenerNormal(this), this);
+			case HIGH:
+				this.getServer().getPluginManager().registerEvents(new ChatListenerHigh(this), this);
+			case HIGHEST:
+				this.getServer().getPluginManager().registerEvents(new ChatListenerHighest(this), this);
+			case MONITOR:
+				this.getServer().getPluginManager().registerEvents(new ChatListenerMonitor(this), this);
+			default:
+				this.getServer().getPluginManager().registerEvents(new ChatListenerNormal(this), this);
 		}
 	}
 	
@@ -158,56 +148,61 @@ public class ChatBubbles extends JavaPlugin implements Listener{
 		boolean requirePerm = getConfig().getBoolean("ConfigZero_Require_Permissions");
 		String usePerm = getConfig().getString("ConfigZero_Use_Permission");
 		String seePerm = getConfig().getString("ConfigZero_See_Permission");
-		if(requirePerm && !p.hasPermission(usePerm))
-			return;
-		if(!togglePF.getBoolean(p.getUniqueId().toString()))
-			return;
-		if(existingHolograms.containsKey(p.getUniqueId())) {
-			for(Hologram h : existingHolograms.get(p.getUniqueId())) {
-				if(!h.isDeleted())
-					h.delete();
-			}
-		}
-		final Hologram hologram = HologramsAPI.createHologram(this, p.getLocation().add(0.0, bubbleOffset, 0.0));
-		List<Hologram> hList = new ArrayList<Hologram>();
-		hList.add(hologram);
-		existingHolograms.put(p.getUniqueId(), hList);
-		hologram.getVisibilityManager().setVisibleByDefault(false);
-		for(Player oP : Bukkit.getOnlinePlayers()){
-			if(((seeOwnBubble) || (!seeOwnBubble && oP.getName() != p.getName())) 
-					&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
-					&& oP.getLocation().distance(p.getLocation()) <= distance) 
-					&& (!requirePerm || (requirePerm && oP.hasPermission(seePerm)))
-					&& oP.canSee(p))
-				hologram.getVisibilityManager().showTo(oP);
-		}
-		int lines = formatHologramLines(p, hologram, message);
-
 		new BukkitRunnable() {
-			int ticksRun = 0;
 			@Override
 			public void run() {
-				ticksRun++;
-				if(!hologram.isDeleted())
-					hologram.teleport(p.getLocation().add(0.0, bubbleOffset + .25 * lines, 0.0));
-				if (ticksRun > life) {
-					hologram.delete();
-					cancel();
+				if(requirePerm && !p.hasPermission(usePerm))
+					return;
+				if(!togglePF.getBoolean(p.getUniqueId().toString()))
+					return;
+				if(existingHolograms.containsKey(p.getUniqueId())) {
+					for(Hologram h : existingHolograms.get(p.getUniqueId())) {
+						if(!h.isDeleted())
+							h.delete();
+					}
 				}
-		}}.runTaskTimer(this, 1L, 1L);
+				final Hologram hologram = HologramsAPI.createHologram(plugin, p.getLocation().add(0.0, bubbleOffset, 0.0));
+				List<Hologram> hList = new ArrayList<Hologram>();
+				hList.add(hologram);
+				existingHolograms.put(p.getUniqueId(), hList);
+				hologram.getVisibilityManager().setVisibleByDefault(false);
+				for(Player oP : Bukkit.getOnlinePlayers()){
+					if(((seeOwnBubble) || (!seeOwnBubble && oP.getName() != p.getName())) 
+							&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
+							&& oP.getLocation().distance(p.getLocation()) <= distance) 
+							&& (!requirePerm || (requirePerm && oP.hasPermission(seePerm)))
+							&& oP.canSee(p))
+						hologram.getVisibilityManager().showTo(oP);
+				}
+				int lines = formatHologramLines(p, hologram, message);
+
+				new BukkitRunnable() {
+					int ticksRun = 0;
+					@Override
+					public void run() {
+						ticksRun++;
+						if(!hologram.isDeleted())
+							hologram.teleport(p.getLocation().add(0.0, bubbleOffset + .25 * lines, 0.0));
+						if (ticksRun > life) {
+							hologram.delete();
+							cancel();
+						}
+				}}.runTaskTimer(plugin, 1L, 1L);
+				
+				if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
+					String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
+					float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
+					if(!sound.equals("")) {
+						try {
+							p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
+						}catch(Exception e) {
+							getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
+							getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
+						}
+					}
+				}
+		}}.runTask(this);
 		
-		if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
-			String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
-			float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
-			if(!sound.equals("")) {
-				try {
-					p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
-				}catch(Exception e) {
-					getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
-					getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
-				}
-			}
-		}
 	}
 	
 	public void handleOne(String message, Player p){
@@ -215,147 +210,162 @@ public class ChatBubbles extends JavaPlugin implements Listener{
 		boolean requirePerm = getConfig().getBoolean("ConfigOne_Require_Permissions");
 		String usePerm = getConfig().getString("ConfigOne_Use_Permission");
 		String seePerm = getConfig().getString("ConfigOne_See_Permission");
-		if(requirePerm && !p.hasPermission(usePerm))
-			return;
-		if(!togglePF.getBoolean(p.getUniqueId().toString()))
-			return;
-		if(existingHolograms.containsKey(p.getUniqueId())) {
-			for(Hologram h : existingHolograms.get(p.getUniqueId())) {
-				if(!h.isDeleted())
-					h.delete();
-			}
-		}
-		final Hologram hologram = HologramsAPI.createHologram(this, p.getLocation().add(0.0, bubbleOffset, 0.0));
-		List<Hologram> hList = new ArrayList<Hologram>();
-		hList.add(hologram);
-		existingHolograms.put(p.getUniqueId(), hList);
-		hologram.getVisibilityManager().setVisibleByDefault(false);
-		for(Player oP : Bukkit.getOnlinePlayers()){
-			if(((seeOwnBubble) || (!seeOwnBubble && oP.getName() != p.getName())) 
-					&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
-					&& oP.getLocation().distance(p.getLocation()) <= distance) 
-					&& (!requirePerm || (requirePerm && oP.hasPermission(seePerm)))
-					&& oP.canSee(p))
-				hologram.getVisibilityManager().showTo(oP);
-		}
-		int lines = formatHologramLines(p, hologram, message);
-		if(sendOriginal)
-			p.chat(message);
-
 		new BukkitRunnable() {
-			int ticksRun = 0;
 			@Override
 			public void run() {
-				ticksRun++;
-				if(!hologram.isDeleted())
-					hologram.teleport(p.getLocation().add(0.0, bubbleOffset + .25 * lines, 0.0));
-				if (ticksRun > life) {
-					hologram.delete();
-					cancel();
+				if(requirePerm && !p.hasPermission(usePerm))
+					return;
+				if(!togglePF.getBoolean(p.getUniqueId().toString()))
+					return;
+				if(existingHolograms.containsKey(p.getUniqueId())) {
+					for(Hologram h : existingHolograms.get(p.getUniqueId())) {
+						if(!h.isDeleted())
+							h.delete();
+					}
 				}
-		}}.runTaskTimer(this, 1L, 1L);
+				final Hologram hologram = HologramsAPI.createHologram(plugin, p.getLocation().add(0.0, bubbleOffset, 0.0));
+				List<Hologram> hList = new ArrayList<Hologram>();
+				hList.add(hologram);
+				existingHolograms.put(p.getUniqueId(), hList);
+				hologram.getVisibilityManager().setVisibleByDefault(false);
+				for(Player oP : Bukkit.getOnlinePlayers()){
+					if(((seeOwnBubble) || (!seeOwnBubble && oP.getName() != p.getName())) 
+							&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
+							&& oP.getLocation().distance(p.getLocation()) <= distance) 
+							&& (!requirePerm || (requirePerm && oP.hasPermission(seePerm)))
+							&& oP.canSee(p))
+						hologram.getVisibilityManager().showTo(oP);
+				}
+				int lines = formatHologramLines(p, hologram, message);
+				if(sendOriginal)
+					p.chat(message);
+
+				new BukkitRunnable() {
+					int ticksRun = 0;
+					@Override
+					public void run() {
+						ticksRun++;
+						if(!hologram.isDeleted())
+							hologram.teleport(p.getLocation().add(0.0, bubbleOffset + .25 * lines, 0.0));
+						if (ticksRun > life) {
+							hologram.delete();
+							cancel();
+						}
+				}}.runTaskTimer(plugin, 1L, 1L);
+				
+				if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
+					String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
+					float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
+					if(!sound.equals("")) {
+						try {
+							p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
+						}catch(Exception e) {
+							getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
+							getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
+						}
+					}
+				}	
+		}}.runTask(this);
 		
-		if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
-			String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
-			float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
-			if(!sound.equals("")) {
-				try {
-					p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
-				}catch(Exception e) {
-					getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
-					getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
-				}
-			}
-		}
 	}
 	
 	public void handleTwo(String message, Player p){
 		boolean sendOriginal = getConfig().getBoolean("ChatBubble_Send_Original_Message");
 		boolean requirePerm = getConfig().getBoolean("ConfigOne_Require_Permissions");
 		String usePerm = getConfig().getString("ConfigOne_Use_Permission");
-		if(requirePerm && !p.hasPermission(usePerm))
-			return;
-		if(!togglePF.getBoolean(p.getUniqueId().toString()))
-			return;
-		if(existingHolograms.containsKey(p.getUniqueId())) {
-			for(Hologram h : existingHolograms.get(p.getUniqueId())) {
-				if(!h.isDeleted())
-					h.delete();
-			}
-		}
-		String permGroup = "";
-		for(String testPerm : getConfig().getStringList("ConfigTwo_Permision_Groups")){
-			if(p.hasPermission(testPerm)){
-				permGroup = testPerm;
-				break;
-			}
-		}
-		if(permGroup.equals(""))
-			return;
-		final Hologram hologram = HologramsAPI.createHologram(this, p.getLocation().add(0.0, bubbleOffset, 0.0));
-		List<Hologram> hList = new ArrayList<Hologram>();
-		hList.add(hologram);
-		existingHolograms.put(p.getUniqueId(), hList);
-		hologram.getVisibilityManager().setVisibleByDefault(false);
-		for(Player oP : Bukkit.getOnlinePlayers()){
-			if(((seeOwnBubble) || (!seeOwnBubble && oP.getName() != p.getName())) 
-					&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
-					&& oP.getLocation().distance(p.getLocation()) <= distance) 
-					&& (oP.hasPermission(permGroup))
-					&& oP.canSee(p))
-				hologram.getVisibilityManager().showTo(oP);
-		}
-		int lines = formatHologramLines(p, hologram, message);
-		if(sendOriginal)
-			p.chat(message);
-
 		new BukkitRunnable() {
-			int ticksRun = 0;
 			@Override
 			public void run() {
-				ticksRun++;
-				if(!hologram.isDeleted())
-					hologram.teleport(p.getLocation().add(0.0, bubbleOffset + .25 * lines, 0.0));
-				if (ticksRun > life) {
-					hologram.delete();
-					cancel();
+				if(requirePerm && !p.hasPermission(usePerm))
+					return;
+				if(!togglePF.getBoolean(p.getUniqueId().toString()))
+					return;
+				if(existingHolograms.containsKey(p.getUniqueId())) {
+					for(Hologram h : existingHolograms.get(p.getUniqueId())) {
+						if(!h.isDeleted())
+							h.delete();
+					}
 				}
-		}}.runTaskTimer(this, 1L, 1L);
+				String permGroup = "";
+				for(String testPerm : getConfig().getStringList("ConfigTwo_Permision_Groups")){
+					if(p.hasPermission(testPerm)){
+						permGroup = testPerm;
+						break;
+					}
+				}
+				if(permGroup.equals(""))
+					return;
+				final Hologram hologram = HologramsAPI.createHologram(plugin, p.getLocation().add(0.0, bubbleOffset, 0.0));
+				List<Hologram> hList = new ArrayList<Hologram>();
+				hList.add(hologram);
+				existingHolograms.put(p.getUniqueId(), hList);
+				hologram.getVisibilityManager().setVisibleByDefault(false);
+				for(Player oP : Bukkit.getOnlinePlayers()){
+					if(((seeOwnBubble) || (!seeOwnBubble && oP.getName() != p.getName())) 
+							&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
+							&& oP.getLocation().distance(p.getLocation()) <= distance) 
+							&& (oP.hasPermission(permGroup))
+							&& oP.canSee(p))
+						hologram.getVisibilityManager().showTo(oP);
+				}
+				int lines = formatHologramLines(p, hologram, message);
+				if(sendOriginal)
+					p.chat(message);
+
+				new BukkitRunnable() {
+					int ticksRun = 0;
+					@Override
+					public void run() {
+						ticksRun++;
+						if(!hologram.isDeleted())
+							hologram.teleport(p.getLocation().add(0.0, bubbleOffset + .25 * lines, 0.0));
+						if (ticksRun > life) {
+							hologram.delete();
+							cancel();
+						}
+				}}.runTaskTimer(plugin, 1L, 1L);
+				
+				if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
+					String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
+					float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
+					if(!sound.equals("")) {
+						try {
+							p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
+						}catch(Exception e) {
+							getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
+							getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
+						}
+					}
+				}	
+		}}.runTask(this);
 		
-		if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
-			String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
-			float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
-			if(!sound.equals("")) {
-				try {
-					p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
-				}catch(Exception e) {
-					getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
-					getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
-				}
-			}
-		}
 	}
 	
 	public void handleFour(String message, Player p){
 		boolean requirePerm = getConfig().getBoolean("ConfigZero_Require_Permissions");
 		String usePerm = getConfig().getString("ConfigZero_Use_Permission");
-		if(requirePerm && !p.hasPermission(usePerm))
-			return;
-		if(!togglePF.getBoolean(p.getUniqueId().toString()))
-			return;
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				if(requirePerm && !p.hasPermission(usePerm))
+					return;
+				if(!togglePF.getBoolean(p.getUniqueId().toString()))
+					return;
+				
+				if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
+					String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
+					float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
+					if(!sound.equals("")) {
+						try {
+							p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
+						}catch(Exception e) {
+							getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
+							getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
+						}
+					}
+				}	
+		}}.runTask(this);
 		
-		if(getConfig().getBoolean("ChatBubble_Play_Sound")) {
-			String sound = getConfig().getString("ChatBubble_Sound_Name").toLowerCase();
-			float volume = (float) getConfig().getDouble("ChatBubble_Sound_Volume");
-			if(!sound.equals("")) {
-				try {
-					p.getWorld().playSound(p.getLocation(), sound, volume, 1.0f);
-				}catch(Exception e) {
-					getServer().getConsoleSender().sendMessage("Something is wrong in your ChatBubble config.yml sound settings!");
-					getServer().getConsoleSender().sendMessage("Please ensure that 'ChatBubble_Sound_Name' works in a '/playsound' command test.");
-				}
-			}
-		}
 	}
 	
 //------------------------Utilities--------------------------------
