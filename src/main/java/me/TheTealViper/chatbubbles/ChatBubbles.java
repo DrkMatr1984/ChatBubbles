@@ -65,9 +65,11 @@ public class ChatBubbles extends JavaPlugin implements Listener{
 		chatBubbleOverridesNPCChat = getConfig().getBoolean("ChatBubble_Overrides_NPC_Chat");
 		chatPriority = EventPriority.valueOf(getConfig().getString("ChatBubble_Chat_Priority").toUpperCase());
 		togglePF = new PluginFile(this, "toggleData");
-		if(getServer().getPluginManager().getPlugin("Citizens") != null || getServer().getPluginManager().getPlugin("Citizens").isEnabled() == true || useTrait) {
-			Bukkit.getServer().getConsoleSender().sendMessage("Citizens found and trait chatbubble enabled");
-			net.citizensnpcs.api.CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(ChatBubbleTrait.class).withName("chatbubble"));		
+		if(getServer().getPluginManager().getPlugin("Citizens") != null) {
+			if(getServer().getPluginManager().getPlugin("Citizens").isEnabled() == true && useTrait) {
+				Bukkit.getServer().getConsoleSender().sendMessage("Citizens found and trait chatbubble enabled");
+				net.citizensnpcs.api.CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(ChatBubbleTrait.class).withName("chatbubble"));
+			}					
 		}
 		this.plugin = this;
 		setChatPriority(chatPriority);		
