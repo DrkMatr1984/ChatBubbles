@@ -5,49 +5,48 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.gmail.filoghost.holographicdisplays.api.Hologram;
-import com.gmail.filoghost.holographicdisplays.api.HologramsAPI;
-
+import eu.decentsoftware.holograms.api.DHAPI;
+import eu.decentsoftware.holograms.api.holograms.Hologram;
 import me.TheTealViper.chatbubbles.ChatBubbles;
+import me.TheTealViper.chatbubbles.utils.FormatUtils;
 
-public class CitizensHDChatbubble {
+public class CitizensDHChatbubble {
 	
 	private ChatBubbles plugin;
 	
-	public CitizensHDChatbubble(ChatBubbles main) {
+	public CitizensDHChatbubble(ChatBubbles main) {
 		this.plugin = main;		
 	}
 	
 	public void createBubbleHD(LivingEntity p, String msg) {
-		if(plugin.hdHandler.existingHolograms.containsKey(p.getUniqueId())) {
-			for(Hologram h : plugin.hdHandler.existingHolograms.get(p.getUniqueId())) {
-				if(!h.isDeleted())
+		boolean requirePerm = plugin.getConfig().getBoolean("Citizens_Bubbles_Require_See_Permission");
+		String seePerm = plugin.getConfig().getString("Citizens_Bubbles_See_Permission");
+		if(plugin.dhHandler.existingHolograms.containsKey(p.getUniqueId())) {
+			for(Hologram h : plugin.dhHandler.existingHolograms.get(p.getUniqueId())) {
+				if(!h.isEnabled())
 					h.delete();
 			}
 		}
-		final Hologram hologram = HologramsAPI.createHologram(plugin, p.getLocation().add(0.0, plugin.getCBConfig().bubbleOffset, 0.0));
+		final Hologram hologram = DHAPI.createHologram(FormatUtils.getRandomString(), p.getLocation().add(0.0, plugin.getCBConfig().bubbleOffset, 0.0), false);
 		List<Hologram> hList = new ArrayList<Hologram>();
 		hList.add(hologram);
-		plugin.hdHandler.existingHolograms.put(p.getUniqueId(), hList);
-		hologram.getVisibilityManager().setVisibleByDefault(false);
-		for(Player oP : Bukkit.getOnlinePlayers()){
-			if(oP.getWorld().getName().equals(p.getWorld().getName()) 
-					&& oP.getLocation().distance(p.getLocation()) <= plugin.getCBConfig().distance);
-				hologram.getVisibilityManager().showTo(oP);
+		plugin.dhHandler.existingHolograms.put(p.getUniqueId(), hList);
+		if(requirePerm) {
+			hologram.setPermission(seePerm);
 		}
-		int lines = plugin.hdHandler.formatHologramLines(p, hologram, msg);
+		int lines = plugin.dhHandler.formatHologramLines(p, hologram, msg);
 
 		new BukkitRunnable() {
 			int ticksRun = 0;
 			@Override
 			public void run() {
 				ticksRun++;
-				if(!hologram.isDeleted())
-					hologram.teleport(p.getLocation().add(0.0, plugin.getCBConfig().bubbleOffset + .25 * lines, 0.0));
+				if(hologram.isEnabled())
+					DHAPI.moveHologram(hologram, p.getLocation().add(0.0, plugin.getCBConfig().bubbleOffset + .25 * lines, 0.0));
 				if (ticksRun > plugin.getCBConfig().life) {
+					hologram.disable();
 					hologram.delete();
 					cancel();
 				}

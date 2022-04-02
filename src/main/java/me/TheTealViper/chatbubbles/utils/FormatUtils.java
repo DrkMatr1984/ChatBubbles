@@ -1,159 +1,14 @@
 package me.TheTealViper.chatbubbles.utils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.bukkit.Bukkit;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-
-import com.gmail.filoghost.holographicdisplays.api.Hologram;
-
-import me.TheTealViper.chatbubbles.ChatBubbles;
-import me.TheTealViper.chatbubbles.placeholderShit;
 import net.md_5.bungee.api.ChatColor;
 
 public class FormatUtils
 {
 	//------------------------Utilities--------------------------------
-	
-		public static int formatHologramLines(Player p, Hologram hologram, String message){
-			List<String> lineList = new ArrayList<String>();
-			for(String formatLine : ChatBubbles.getPlugin().getConfig().getStringList("ChatBubble_Message_Format")){
-				boolean addedToLine = false;
-				if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI"))
-					formatLine = placeholderShit.formatString(p, formatLine);
-				if(formatLine.contains("%chatbubble_message%")){
-					addedToLine = true;
-					formatLine = formatLine.replace("%chatbubble_message%", message);
-					
-					for(String s : formatLine.split(" ")){
-						if(s.length() > ChatBubbles.getPlugin().getCBConfig().length){
-							String insert = "-\n";
-							int period = ChatBubbles.getPlugin().getCBConfig().length - 1;
-							StringBuilder builder = new StringBuilder(
-							         s.length() + insert.length() * (s.length()/ChatBubbles.getPlugin().getCBConfig().length)+1);
-
-							    int index = 0;
-							    String prefix = "";
-							    while (index < s.length())
-							    {
-							        // Don't put the insert in the very first iteration.
-							        // This is easier than appending it *after* each substring
-							        builder.append(prefix);
-							        prefix = insert;
-							        builder.append(s.substring(index, 
-							            Math.min(index + period, s.length())));
-							        index += period;
-							    }
-							String replacement = builder.toString();
-							formatLine = formatLine.replace(s, replacement);
-							message = message.replace(s, replacement);
-						}
-					}
-					
-					StringBuilder sb = new StringBuilder(formatLine.replace(message, "") + message);
-					int i = 0;
-					while (i + ChatBubbles.getPlugin().getCBConfig().length < sb.length() && (i = sb.lastIndexOf(" ", i + ChatBubbles.getPlugin().getCBConfig().length)) != -1) {
-					    sb.replace(i, i + 1, "\n");
-					}
-					for(String s : sb.toString().split("\\n")){
-						if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-							s = makeColors(s);
-							if(ChatBubbles.getPlugin().getConfig().getBoolean("ChatBubble_Strip_Formatting"))
-								s = ChatColor.stripColor(s);
-							s = placeholderShit.formatString(p, ChatBubbles.getPlugin().getCBConfig().prefix + s + ChatBubbles.getPlugin().getCBConfig().suffix);
-							s = makeColors(s);
-							lineList.add(s);
-						} else {
-							s = makeColors(s);
-							if(ChatBubbles.getPlugin().getConfig().getBoolean("ChatBubble_Strip_Formatting"))
-								s = ChatColor.stripColor(s);
-							s = makeColors(ChatBubbles.getPlugin().getCBConfig().prefix + s + ChatBubbles.getPlugin().getCBConfig().suffix);
-							lineList.add(s);
-						}
-					}
-				}
-				if(!addedToLine) {
-					if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-						formatLine = makeColors(formatLine);
-						if(ChatBubbles.getPlugin().getConfig().getBoolean("ChatBubble_Strip_Formatting"))
-							formatLine = ChatColor.stripColor(formatLine);
-						formatLine = placeholderShit.formatString(p, ChatBubbles.getPlugin().getCBConfig().prefix + formatLine + ChatBubbles.getPlugin().getCBConfig().suffix);
-						formatLine = makeColors(formatLine);
-						lineList.add(formatLine);
-					}	else {
-						formatLine = makeColors(formatLine);
-						if(ChatBubbles.getPlugin().getConfig().getBoolean("ChatBubble_Strip_Formatting"))
-							formatLine = ChatColor.stripColor(formatLine);
-						formatLine = makeColors(ChatBubbles.getPlugin().getCBConfig().prefix + formatLine + ChatBubbles.getPlugin().getCBConfig().suffix);
-						lineList.add(formatLine);
-					}
-				}
-			}
-			for(String s : lineList)
-				hologram.appendTextLine(s);
-			return lineList.size();
-		}
-		
-		public static int formatHologramLines(LivingEntity p, Hologram hologram, String message){
-			List<String> lineList = new ArrayList<String>();
-			for(String formatLine : ChatBubbles.getPlugin().getConfig().getStringList("ChatBubble_Message_Format")){
-				if(formatLine.contains("%player_name%"))
-					formatLine = formatLine.replace("%player_name%", p.getCustomName());
-				boolean addedToLine = false;
-				if(formatLine.contains("%chatbubble_message%")){		
-					addedToLine = true;
-					formatLine = formatLine.replace("%chatbubble_message%", message);
-					
-					for(String s : formatLine.split(" ")){
-						if(s.length() > ChatBubbles.getPlugin().getCBConfig().length){
-							String insert = "-\n";
-							int period = ChatBubbles.getPlugin().getCBConfig().length - 1;
-							StringBuilder builder = new StringBuilder(
-							         s.length() + insert.length() * (s.length()/ChatBubbles.getPlugin().getCBConfig().length)+1);
-
-							    int index = 0;
-							    String prefix = "";
-							    while (index < s.length())
-							    {
-							        // Don't put the insert in the very first iteration.
-							        // This is easier than appending it *after* each substring
-							        builder.append(prefix);
-							        prefix = insert;
-							        builder.append(s.substring(index, 
-							            Math.min(index + period, s.length())));
-							        index += period;
-							    }
-							String replacement = builder.toString();
-							formatLine = formatLine.replace(s, replacement);
-							message = message.replace(s, replacement);
-						}
-					}
-					
-					StringBuilder sb = new StringBuilder(formatLine.replace(message, "") + message);
-					int i = 0;
-					while (i + ChatBubbles.getPlugin().getCBConfig().length < sb.length() && (i = sb.lastIndexOf(" ", i + ChatBubbles.getPlugin().getCBConfig().length)) != -1) {
-					    sb.replace(i, i + 1, "\n");
-					}
-					for(String s : sb.toString().split("\\n")){
-						s = makeColors(s);
-						s = makeColors(ChatBubbles.getPlugin().getCBConfig().prefix + s + ChatBubbles.getPlugin().getCBConfig().suffix);
-						lineList.add(s);				
-					}
-				}
-				if(!addedToLine) {
-					formatLine = makeColors(formatLine);
-					formatLine = makeColors(ChatBubbles.getPlugin().getCBConfig().prefix + formatLine + ChatBubbles.getPlugin().getCBConfig().suffix);
-					lineList.add(formatLine);			
-				}
-			}
-			for(String s : lineList)
-				hologram.appendTextLine(s);
-			return lineList.size();
-		}
 		
 		public final static Pattern HEXPAT = Pattern.compile("&#[a-fA-F0-9]{6}");
 		public static String makeColors(String s){
@@ -188,5 +43,20 @@ public class FormatUtils
 	        }
 	        
 			return s;
+		}
+		
+		public static String getRandomString() {
+		    int leftLimit = 48; // numeral '0'
+		    int rightLimit = 122; // letter 'z'
+		    int targetStringLength = 10;
+		    Random random = new Random();
+
+		    String generatedString = random.ints(leftLimit, rightLimit + 1)
+		      .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
+		      .limit(targetStringLength)
+		      .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+		      .toString();
+
+		    return generatedString;
 		}
 }

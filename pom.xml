@@ -1,23 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
     <modelVersion>4.0.0</modelVersion>
-<<<<<<< Updated upstream
-    
-=======
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <build.number>Unknown</build.number>
     </properties>
->>>>>>> Stashed changes
     <name>ChatBubbles</name>
     <description>Creates chat Bubbles over player's heads when they chat</description>
+
     <groupId>me.TheTealViper</groupId>
     <artifactId>chatbubbles</artifactId>
-    <version>1.18</version>
+    <version>1.18.1</version>
 
     <repositories>
         <repository>
@@ -50,15 +44,6 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-<<<<<<< Updated upstream
-            <version>1.18.1-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>craftbukkit</artifactId>
-            <version>1.18.1-R0.1-SNAPSHOT</version>
-=======
             <version>1.18.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
@@ -66,7 +51,6 @@
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot</artifactId>
             <version>1.18.2-R0.1-SNAPSHOT</version>
->>>>>>> Stashed changes
         </dependency>
         <dependency>
             <groupId>com.gmail.filoghost.holographicdisplays</groupId>
@@ -103,14 +87,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-<<<<<<< Updated upstream
-=======
             <groupId>com.github.decentsoftware-eu</groupId>
             <artifactId>decentholograms</artifactId>
             <version>2.3.0</version>
         </dependency>
         <dependency>
->>>>>>> Stashed changes
             <artifactId>commons-io</artifactId>
             <groupId>commons-io</groupId>
             <scope>compile</scope>

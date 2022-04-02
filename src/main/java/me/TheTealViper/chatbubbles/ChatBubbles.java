@@ -12,30 +12,32 @@ import me.TheTealViper.chatbubbles.citizens.ChatBubbleTrait;
 
 public class ChatBubbles extends JavaPlugin {
 	
-	private static ChatBubbles plugin;
+	private ChatBubbles plugin;
 	private CBConfig config;
 	public enum HologramType {
 	    HD, DecentHolograms
 	}
 	public HologramType type = null;
 	public HandleHolographicDisplays hdHandler;
+	public HandleDecentHolograms dhHandler;
 	public Listener hologramListener;
 	
 	public void onEnable(){
-		ChatBubbles.plugin = this;	
+		plugin = this;	
 		this.config = new CBConfig(plugin);
 		if(getServer().getPluginManager().getPlugin("HolographicDisplays") != null) {
 			if(getServer().getPluginManager().getPlugin("HolographicDisplays").isEnabled()) {
 				Bukkit.getServer().getConsoleSender().sendMessage("[ChatBubbles] Using HolographicDisplays to power ChatBubbles!");
 				type = HologramType.HD;
-				hdHandler = new HandleHolographicDisplays(ChatBubbles.plugin);
+				hdHandler = new HandleHolographicDisplays(plugin);
 				hologramListener = hdHandler;
 			}					
-		}else if(type.equals(null) && getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
+		}else if(type == null && getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
 			if(getServer().getPluginManager().getPlugin("DecentHolograms").isEnabled()) {
 				Bukkit.getServer().getConsoleSender().sendMessage("[ChatBubbles] Using DecentHolograms to power ChatBubbles!");
 				type = HologramType.DecentHolograms;
-				hologramListener = hdHandler;
+				dhHandler = new HandleDecentHolograms(plugin);
+				hologramListener = dhHandler;
 			}					
 		}else {
 			Bukkit.getServer().getConsoleSender().sendMessage("[ChatBubbles] No hologram provider found, shutting ChatBubbles down...");
@@ -80,7 +82,7 @@ public class ChatBubbles extends JavaPlugin {
 						hdHandler.handleOne(message, p);
 					}
 					if(type.equals(HologramType.DecentHolograms)) {
-						//handleOne(message, p);
+						dhHandler.handleOne(message, p);
 					}
 					
 				}
@@ -107,7 +109,7 @@ public class ChatBubbles extends JavaPlugin {
 	    case HD:
 	    	hdHandler.handleZero(message, p);
 	    case DecentHolograms:
-	    	//create DecentHolograms speech bubble
+	    	dhHandler.handleZero(message, p);
 	    }
 	}
 	
@@ -116,7 +118,7 @@ public class ChatBubbles extends JavaPlugin {
 	    case HD:
 	    	hdHandler.handleOne(message, p);
 	    case DecentHolograms:
-	    	//create DecentHolograms speech bubble
+	    	dhHandler.handleOne(message, p);
 	    }
 	}
 	
@@ -125,7 +127,7 @@ public class ChatBubbles extends JavaPlugin {
 	    case HD:
 	    	hdHandler.handleTwo(message, p);
 	    case DecentHolograms:
-	    	//create DecentHolograms speech bubble
+	    	dhHandler.handleTwo(message, p);
 	    }
 	}
     
@@ -134,7 +136,7 @@ public class ChatBubbles extends JavaPlugin {
 	    case HD:
 	    	hdHandler.handleThree(message, p);
 	    case DecentHolograms:
-	    	//create DecentHolograms speech bubble
+	    	dhHandler.handleZero(message, p);
 	    }
     }
     
@@ -143,7 +145,7 @@ public class ChatBubbles extends JavaPlugin {
 	    case HD:
 	    	hdHandler.handleFour(message, p);
 	    case DecentHolograms:
-	    	//create DecentHolograms speech bubble
+	    	dhHandler.handleFour(message, p);
 	    }
     }
 	
@@ -151,7 +153,7 @@ public class ChatBubbles extends JavaPlugin {
 		return this.config;
 	}
 	
-	public static ChatBubbles getPlugin() {
+	public ChatBubbles getPlugin() {
 		return plugin;
 	}
 	

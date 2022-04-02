@@ -10,10 +10,6 @@ import java.net.URL;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.apache.commons.io.FileUtils;
-<<<<<<< Updated upstream
-import org.bukkit.event.Listener;
-=======
->>>>>>> Stashed changes
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class EnableShit {

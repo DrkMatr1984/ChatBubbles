@@ -11,20 +11,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.gmail.filoghost.holographicdisplays.api.Hologram;
-import com.gmail.filoghost.holographicdisplays.api.HologramsAPI;
-import me.TheTealViper.chatbubbles.factions.HandleThreeHD;
+import eu.decentsoftware.holograms.api.DHAPI;
+import eu.decentsoftware.holograms.api.holograms.Hologram;
 import me.TheTealViper.chatbubbles.utils.FormatUtils;
 import net.md_5.bungee.api.ChatColor;
 
-public class HandleHolographicDisplays implements Listener
+public class HandleDecentHolograms implements Listener
 {
 	
 	private ChatBubbles plugin;
 	public final CBConfig config;
 	public HashMap<UUID,List<Hologram>> existingHolograms;
     
-	public HandleHolographicDisplays(ChatBubbles main) {
+	public HandleDecentHolograms(ChatBubbles main) {
 		this.plugin = main;
 		this.config = plugin.getCBConfig();
 		this.existingHolograms = new HashMap<UUID,List<Hologram>>();
@@ -45,33 +44,28 @@ public class HandleHolographicDisplays implements Listener
 					return;
 				if(existingHolograms.containsKey(p.getUniqueId())) {
 					for(Hologram h : existingHolograms.get(p.getUniqueId())) {
-						if(!h.isDeleted())
+						if(!h.isEnabled())
 							h.delete();
 					}
 				}
-				final Hologram hologram = HologramsAPI.createHologram(plugin, p.getLocation().add(0.0, config.bubbleOffset, 0.0));
+				final Hologram hologram = DHAPI.createHologram(FormatUtils.getRandomString(), p.getLocation().add(0.0, config.bubbleOffset, 0.0), false);
 				List<Hologram> hList = new ArrayList<Hologram>();
 				hList.add(hologram);
 				existingHolograms.put(p.getUniqueId(), hList);
-				hologram.getVisibilityManager().setVisibleByDefault(false);
-				for(Player oP : Bukkit.getOnlinePlayers()){
-					if(((config.seeOwnBubble) || (config.seeOwnBubble && oP.getName() != p.getName())) 
-							&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
-							&& oP.getLocation().distance(p.getLocation()) <= config.distance) 
-							&& (!requirePerm || (requirePerm && oP.hasPermission(seePerm)))
-							&& oP.canSee(p))
-						hologram.getVisibilityManager().showTo(oP);
+				//figure this mess out
+				if(requirePerm) {
+					hologram.setPermission(seePerm);
 				}
 				int lines = formatHologramLines(p, hologram, message);
-
 				new BukkitRunnable() {
 					int ticksRun = 0;
 					@Override
 					public void run() {
 						ticksRun++;
-						if(!hologram.isDeleted())
-							hologram.teleport(p.getLocation().add(0.0, config.bubbleOffset + .25 * lines, 0.0));
+						if(hologram.isEnabled())
+							DHAPI.moveHologram(hologram, p.getLocation().add(0.0, config.bubbleOffset + .25 * lines, 0.0));
 						if (ticksRun > config.life) {
+							hologram.disable();
 							hologram.delete();
 							cancel();
 						}
@@ -107,22 +101,16 @@ public class HandleHolographicDisplays implements Listener
 					return;
 				if(existingHolograms.containsKey(p.getUniqueId())) {
 					for(Hologram h : existingHolograms.get(p.getUniqueId())) {
-						if(!h.isDeleted())
+						if(!h.isEnabled())
 							h.delete();
 					}
 				}
-				final Hologram hologram = HologramsAPI.createHologram(plugin, p.getLocation().add(0.0, config.bubbleOffset, 0.0));
+				final Hologram hologram = DHAPI.createHologram(FormatUtils.getRandomString(), p.getLocation().add(0.0, config.bubbleOffset, 0.0), false);
 				List<Hologram> hList = new ArrayList<Hologram>();
 				hList.add(hologram);
 				existingHolograms.put(p.getUniqueId(), hList);
-				hologram.getVisibilityManager().setVisibleByDefault(false);
-				for(Player oP : Bukkit.getOnlinePlayers()){
-					if(((config.seeOwnBubble) || (!config.seeOwnBubble && oP.getName() != p.getName())) 
-							&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
-							&& oP.getLocation().distance(p.getLocation()) <= config.distance) 
-							&& (!requirePerm || (requirePerm && oP.hasPermission(seePerm)))
-							&& oP.canSee(p))
-						hologram.getVisibilityManager().showTo(oP);
+				if(requirePerm) {
+					hologram.setPermission(seePerm);
 				}
 				int lines = formatHologramLines(p, hologram, message);
 				if(sendOriginal)
@@ -133,9 +121,10 @@ public class HandleHolographicDisplays implements Listener
 					@Override
 					public void run() {
 						ticksRun++;
-						if(!hologram.isDeleted())
-							hologram.teleport(p.getLocation().add(0.0, config.bubbleOffset + .25 * lines, 0.0));
+						if(hologram.isEnabled())
+							DHAPI.moveHologram(hologram, p.getLocation().add(0.0, config.bubbleOffset + .25 * lines, 0.0));
 						if (ticksRun > config.life) {
+							hologram.disable();
 							hologram.delete();
 							cancel();
 						}
@@ -170,7 +159,7 @@ public class HandleHolographicDisplays implements Listener
 					return;
 				if(existingHolograms.containsKey(p.getUniqueId())) {
 					for(Hologram h : existingHolograms.get(p.getUniqueId())) {
-						if(!h.isDeleted())
+						if(!h.isEnabled())
 							h.delete();
 					}
 				}
@@ -183,19 +172,11 @@ public class HandleHolographicDisplays implements Listener
 				}
 				if(permGroup.equals(""))
 					return;
-				final Hologram hologram = HologramsAPI.createHologram(plugin, p.getLocation().add(0.0, config.bubbleOffset, 0.0));
+				final Hologram hologram = DHAPI.createHologram(FormatUtils.getRandomString(), p.getLocation().add(0.0, config.bubbleOffset, 0.0), false);
 				List<Hologram> hList = new ArrayList<Hologram>();
 				hList.add(hologram);
 				existingHolograms.put(p.getUniqueId(), hList);
-				hologram.getVisibilityManager().setVisibleByDefault(false);
-				for(Player oP : Bukkit.getOnlinePlayers()){
-					if(((config.seeOwnBubble) || (!config.seeOwnBubble && oP.getName() != p.getName())) 
-							&& (oP.getWorld().getName().equals(p.getWorld().getName()) 
-							&& oP.getLocation().distance(p.getLocation()) <= config.distance) 
-							&& (oP.hasPermission(permGroup))
-							&& oP.canSee(p))
-						hologram.getVisibilityManager().showTo(oP);
-				}
+				hologram.setPermission(permGroup);
 				int lines = formatHologramLines(p, hologram, message);
 				if(sendOriginal)
 					p.chat(message);
@@ -205,9 +186,10 @@ public class HandleHolographicDisplays implements Listener
 					@Override
 					public void run() {
 						ticksRun++;
-						if(!hologram.isDeleted())
-							hologram.teleport(p.getLocation().add(0.0, config.bubbleOffset + .25 * lines, 0.0));
+						if(hologram.isEnabled())
+							DHAPI.moveHologram(hologram, p.getLocation().add(0.0, config.bubbleOffset + .25 * lines, 0.0));
 						if (ticksRun > config.life) {
+							hologram.disable();
 							hologram.delete();
 							cancel();
 						}
@@ -227,10 +209,6 @@ public class HandleHolographicDisplays implements Listener
 				}	
 		}}.runTask(plugin);
 		
-	}
-	
-	public void handleThree(String message, Player p){
-		HandleThreeHD.handleThree(plugin, message, p);
 	}
 	
 	public void handleFour(String message, Player p){
@@ -335,7 +313,7 @@ public class HandleHolographicDisplays implements Listener
 			}
 		}
 		for(String s : lineList)
-			hologram.appendTextLine(s);
+			DHAPI.addHologramLine(hologram, s);
 		return lineList.size();
 	}
 	
@@ -350,7 +328,7 @@ public class HandleHolographicDisplays implements Listener
 				formatLine = formatLine.replace("%chatbubble_message%", message);
 				
 				for(String s : formatLine.split(" ")){
-					if(s.length() >plugin.getCBConfig().length){
+					if(s.length() > plugin.getCBConfig().length){
 						String insert = "-\n";
 						int period = plugin.getCBConfig().length - 1;
 						StringBuilder builder = new StringBuilder(
@@ -392,7 +370,8 @@ public class HandleHolographicDisplays implements Listener
 			}
 		}
 		for(String s : lineList)
-			hologram.appendTextLine(s);
+			DHAPI.addHologramLine(hologram, s);
 		return lineList.size();
 	}
+	
 }

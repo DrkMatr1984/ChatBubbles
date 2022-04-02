@@ -14,6 +14,7 @@ public class ChatBubbleTrait extends Trait {
 	
 	ChatBubbles plugin = null;
 	CitizensHDChatbubble hdHandler;
+	CitizensDHChatbubble dhHandler;
 	
 	public ChatBubbleTrait() {
 		super("chatbubble");
@@ -22,7 +23,7 @@ public class ChatBubbleTrait extends Trait {
 	        case HD:
 	        	hdHandler = new CitizensHDChatbubble(plugin);
 	        case DecentHolograms:
-	        	//initiate decent holograms handler
+	        	dhHandler = new CitizensDHChatbubble(plugin);
 	}
 	}
 	
@@ -41,7 +42,7 @@ public class ChatBubbleTrait extends Trait {
 	    		    case HD:
 	    		    	hdHandler.createBubbleHD(p, msg);
 	    		    case DecentHolograms:
-	    		    	//create DecentHolograms speech bubble
+	    		    	dhHandler.createBubbleHD(p, msg);
 	    		}
 	    		
 	    		if(plugin.getCBConfig().chatBubbleOverridesNPCChat)
