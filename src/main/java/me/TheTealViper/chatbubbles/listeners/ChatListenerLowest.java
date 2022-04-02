@@ -8,7 +8,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 import me.TheTealViper.chatbubbles.ChatBubbles;
-import me.TheTealViper.chatbubbles.handleThree;
 
 public class ChatListenerLowest implements Listener
 {
@@ -39,7 +38,7 @@ public class ChatListenerLowest implements Listener
 			break;
 		case 3:
 			if(Bukkit.getServer().getPluginManager().getPlugin("Factions") != null)
-				handleThree.run(plugin, e.getMessage(), e.getPlayer());
+				plugin.handleThree(e.getMessage(), e.getPlayer());
 			else
 				plugin.getServer().getConsoleSender().sendMessage("ChatBubbles is set to configuration mode 3 but Factions can't be found!");
 			break;

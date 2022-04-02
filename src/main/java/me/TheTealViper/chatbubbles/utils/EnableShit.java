@@ -10,15 +10,17 @@ import java.net.URL;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.apache.commons.io.FileUtils;
+<<<<<<< Updated upstream
 import org.bukkit.event.Listener;
+=======
+>>>>>>> Stashed changes
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class EnableShit {
 	
-	public static void handleOnEnable(JavaPlugin plugin, Listener pluginL, String spigotID){
+	public static void handleOnEnable(JavaPlugin plugin, String spigotID){
 		plugin.saveDefaultConfig();
 		checkUpdates(plugin, spigotID);
-		Bukkit.getPluginManager().registerEvents(pluginL, plugin);
 		Bukkit.getServer().getConsoleSender().sendMessage(plugin.getDescription().getName() + " from TheTealViper powered ON!");
 	}
 	
